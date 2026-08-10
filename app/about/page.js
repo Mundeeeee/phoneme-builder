@@ -33,8 +33,12 @@ export default function AboutPage() {
         <h3>Submission details</h3>
         <p>Lachlan Broadbent &middot; Student Number: 22451393</p>
         <p style={{ marginBottom: 0 }}>Video walkthrough:</p>
-        <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }}>
-          <source src="/guide.mkv" type="video/mkv" />
+        <video controls playsInline preload="metadata" style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }}>
+          {/* Provide common formats first; fall back to MKV if available */}
+          <source src="/guide.mp4" type="video/mp4" />
+          <source src="/guide.webm" type="video/webm" />
+          <source src="/guide.mkv" type="video/x-matroska" />
+          Your browser does not support the video tag. You can download the video <a href="/guide.mkv">here</a>.
         </video>
       </div>
     </div>
