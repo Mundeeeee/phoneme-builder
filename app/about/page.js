@@ -33,9 +33,8 @@ export default function AboutPage() {
         <h3>Submission details</h3>
         <p>Lachlan Broadbent &middot; Student Number: 22451393</p>
         <p style={{ marginBottom: 0 }}>Video walkthrough:</p>
-        {/* TODO: replace the src below with your uploaded walkthrough video */}
         <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }}>
-          <source src="/walkthrough.mp4" type="video/mp4" />
+          <source src="src\Guide.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>
