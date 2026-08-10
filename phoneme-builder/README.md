@@ -39,19 +39,3 @@ lib/
   generateWordSearchHtml.js      Builds the standalone Word Search .html file
 ```
 
-## References
-
-MDN Web Docs. (2026, June 15). *Document: cookie property*. Mozilla. https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
-
-MDN Web Docs. (n.d.). *URL: createObjectURL() static method*. Mozilla. Retrieved August 10, 2026, from https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL_static
-
-Nielsen, J. (1994). *10 usability heuristics for user interface design*. Nielsen Norman Group. https://www.nngroup.com/articles/ten-usability-heuristics/
-
-React. (n.d.). *Built-in React hooks*. React Documentation. Retrieved August 10, 2026, from https://react.dev/reference/react/hooks
-
-React. (n.d.). *Thinking in React*. React Documentation. Retrieved August 10, 2026, from https://react.dev/learn/thinking-in-react
-
-Vercel. (n.d.). *Next.js docs: App Router*. Next.js Documentation. Retrieved August 10, 2026, from https://nextjs.org/docs/app
-
-World Wide Web Consortium. (2023, October 5). *Web Content Accessibility Guidelines (WCAG) 2.2*. W3C. https://www.w3.org/TR/WCAG22/
-
