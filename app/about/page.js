@@ -34,8 +34,7 @@ export default function AboutPage() {
         <p>Lachlan Broadbent &middot; Student Number: 22451393</p>
         <p style={{ marginBottom: 0 }}>Video walkthrough:</p>
         <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }}>
-          <source src="src\Guide.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
+          <source src="/guide.mkv" type="video/mkv" />
         </video>
       </div>
     </div>
