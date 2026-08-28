@@ -1,0 +1,89 @@
+// Prisma schema for the HCE Phoneme Activity Builder (Assessment 2).
+//
+// Design notes:
+// - Phonemes can be more than one character (e.g. "tʃ", "eː"), so each
+//   phoneme unit of a word is stored as its own row (PhonemeUnit) with a
+//   position, rather than splitting a plain string by character. This is
+//   what "store them appropriately" means for multi-character IPA symbols.
+// - A WordList groups Words together and can be reused by multiple
+//   ActivityConfigs (a Wordle config and a Word Search config can both
+//   point at the same list), matching "the schema should support storing
+//   and retrieving multiple activity configurations".
+// - SQLite is used so the whole database is a single file that ships
+//   inside the Docker image/volume with zero external setup.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" covers local development (Windows/Mac/glibc Linux).
+  // "linux-musl-openssl-3.0.x" covers the node:20-alpine Docker image,
+  // which uses musl libc and ships OpenSSL 3.x - without this, Prisma's
+  // schema/query engines can't find a compatible libssl inside the
+  // container and crash instead of running.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+model WordList {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  words       Word[]
+  activities  ActivityConfig[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Word {
+  id          String         @id @default(cuid())
+  englishWord String
+  wordListId  String
+  wordList    WordList       @relation(fields: [wordListId], references: [id], onDelete: Cascade)
+  phonemes    PhonemeUnit[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([wordListId])
+}
+
+// One row per phoneme symbol in a word, in order. Storing units as rows
+// (rather than a delimited string) means a multi-character symbol like
+// "tʃ" or "eː" is never accidentally split into individual letters.
+model PhonemeUnit {
+  id       String @id @default(cuid())
+  symbol   String
+  position Int
+  wordId   String
+  word     Word   @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@index([wordId])
+  @@unique([wordId, position])
+}
+
+// Activity type enum, kept as a plain string column (SQLite has no native
+// enum type) but constrained in application-level validation.
+model ActivityConfig {
+  id          String   @id @default(cuid())
+  type        String   // "WORDLE" | "WORD_SEARCH"
+  title       String
+  difficulty  String   @default("MEDIUM") // "EASY" | "MEDIUM" | "HARD"
+  showHints   Boolean  @default(true)
+
+  // Wordle-specific settings (null/unused for Word Search)
+  maxGuesses  Int?
+
+  // Word Search-specific settings (null/unused for Wordle)
+  gridRows    Int?
+  gridCols    Int?
+
+  wordListId  String
+  wordList    WordList @relation(fields: [wordListId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([wordListId])
+}

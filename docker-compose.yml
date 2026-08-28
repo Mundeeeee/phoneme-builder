@@ -1,0 +1,13 @@
+services:
+  phoneme-builder:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/prisma/dev.db
+    volumes:
+      # Persist the SQLite database across container restarts/rebuilds.
+      - phoneme-db:/app/prisma
+
+volumes:
+  phoneme-db:

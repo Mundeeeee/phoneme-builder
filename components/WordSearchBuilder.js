@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { WORDS_3, WORD_SEARCH_DEFAULT } from "@/lib/wordLists";
 import { englishFor } from "@/lib/phonemeData";
 import { generateWordSearchHtml } from "@/lib/generateWordSearchHtml";
 import { downloadHtml } from "@/lib/downloadHtml";
+import { useWordLists } from "@/hooks/useWordLists";
 
 const DIRECTIONS = [
   { dr: 0, dc: 1 }, { dr: 0, dc: -1 }, { dr: 1, dc: 0 }, { dr: -1, dc: 0 },
   { dr: 1, dc: 1 }, { dr: 1, dc: -1 }, { dr: -1, dc: 1 }, { dr: -1, dc: -1 },
 ];
 
-// A small curated pool a teacher can pick from (kept fixed for Assessment 1).
-const WORD_POOL = [...WORD_SEARCH_DEFAULT, WORDS_3[0], WORDS_3[6], WORDS_3[9], WORDS_3[13]];
-
 function key(units) {
   return units.join("");
+}
+
+function wordToUnits(word) {
+  return word.phonemes.map((p) => p.symbol);
 }
 
 function buildPuzzle(words, rows, cols) {
@@ -81,17 +82,35 @@ function getPath(r1, c1, r2, c2) {
 }
 
 export default function WordSearchBuilder() {
-  const [selected, setSelected] = useState(WORD_POOL.slice(0, 5).map(key));
+  const { wordLists, loading, error } = useWordLists();
+
+  const [selectedListId, setSelectedListId] = useState(null);
+  const [selectedWordIds, setSelectedWordIds] = useState([]);
   const [rows, setRows] = useState(10);
   const [cols, setCols] = useState(10);
   const [activityTitle, setActivityTitle] = useState("Phoneme Word Search");
+  const [difficulty, setDifficulty] = useState("MEDIUM");
+  const [saveMessage, setSaveMessage] = useState("");
 
+  // Once word lists load, default to the first non-empty list and select
+  // up to its first five words.
+  useEffect(() => {
+    if (wordLists.length === 0) return;
+    if (selectedListId && wordLists.some((l) => l.id === selectedListId)) return;
+    const firstList = wordLists.find((l) => l.words.length > 0) || wordLists[0];
+    setSelectedListId(firstList.id);
+    setSelectedWordIds(firstList.words.slice(0, 5).map((w) => w.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordLists]);
+
+  const selectedList = wordLists.find((l) => l.id === selectedListId);
+  const listWords = selectedList?.words || [];
   const activeWords = useMemo(
-    () => WORD_POOL.filter((w) => selected.includes(key(w))),
-    [selected]
+    () => listWords.filter((w) => selectedWordIds.includes(w.id)).map(wordToUnits),
+    [listWords, selectedWordIds]
   );
 
-  const [puzzle, setPuzzle] = useState(() => buildPuzzle(activeWords, rows, cols));
+  const [puzzle, setPuzzle] = useState({ matrix: [], solutions: [] });
   const [found, setFound] = useState({});
   const [selecting, setSelecting] = useState(false);
   const [start, setStart] = useState(null);
@@ -99,20 +118,31 @@ export default function WordSearchBuilder() {
 
   // Rebuild the puzzle whenever the word selection or grid size changes.
   useEffect(() => {
+    if (activeWords.length === 0) {
+      setPuzzle({ matrix: [], solutions: [] });
+      return;
+    }
     setPuzzle(buildPuzzle(activeWords, rows, cols));
     setFound({});
     setHighlighted([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected.join(","), rows, cols]);
+  }, [selectedWordIds.join(","), rows, cols]);
 
-  function toggleWord(units) {
-    const k = key(units);
-    setSelected((prev) =>
-      prev.includes(k) ? prev.filter((w) => w !== k) : [...prev, k]
+  function handleListChange(e) {
+    const listId = e.target.value;
+    setSelectedListId(listId);
+    const list = wordLists.find((l) => l.id === listId);
+    setSelectedWordIds((list?.words || []).slice(0, 5).map((w) => w.id));
+  }
+
+  function toggleWord(wordId) {
+    setSelectedWordIds((prev) =>
+      prev.includes(wordId) ? prev.filter((id) => id !== wordId) : [...prev, wordId]
     );
   }
 
   function regenerate() {
+    if (activeWords.length === 0) return;
     setPuzzle(buildPuzzle(activeWords, rows, cols));
     setFound({});
     setHighlighted([]);
@@ -133,7 +163,7 @@ export default function WordSearchBuilder() {
   function endSelection() {
     if (!selecting) return;
     setSelecting(false);
-    if (highlighted.length > 0) {
+    if (highlighted.length > 0 && puzzle.matrix.length > 0) {
       const first = highlighted[0];
       const last = highlighted[highlighted.length - 1];
       const path = getPath(first.r, first.c, last.r, last.c) || highlighted;
@@ -162,6 +192,7 @@ export default function WordSearchBuilder() {
   const foundSet = foundCoordSet();
 
   function handleGenerate() {
+    if (activeWords.length === 0) return;
     const html = generateWordSearchHtml({
       words: activeWords,
       rows,
@@ -171,29 +202,97 @@ export default function WordSearchBuilder() {
     downloadHtml("phoneme-word-search.html", html);
   }
 
+  async function handleSaveConfig() {
+    if (!selectedListId) return;
+    setSaveMessage("Saving...");
+    try {
+      const res = await fetch("/api/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "WORD_SEARCH",
+          title: activityTitle,
+          difficulty,
+          showHints: true,
+          gridRows: rows,
+          gridCols: cols,
+          wordListId: selectedListId,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save activity.");
+      }
+      setSaveMessage("Saved!");
+    } catch (err) {
+      setSaveMessage(err.message || "Failed to save activity.");
+    } finally {
+      setTimeout(() => setSaveMessage(""), 3000);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="card">
+        <p>Loading word lists from the database...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card">
+        <p style={{ color: "var(--bad)" }}>{error}</p>
+      </div>
+    );
+  }
+
+  if (wordLists.length === 0) {
+    return (
+      <div className="card">
+        <p>
+          No word lists yet. Go to <a href="/word-lists">Word Lists</a> to create one with at
+          least one word before building a Word Search.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid-2">
       <div className="card">
         <span className="eyebrow">Activity settings</span>
         <h2>Build your Word Search</h2>
 
-        <label>Words to include (fixed pool for Assessment 1)</label>
-        {WORD_POOL.map((units) => {
-          const k = key(units);
-          return (
-            <div className="checkbox-row" key={k}>
-              <input
-                type="checkbox"
-                id={`w-${k}`}
-                checked={selected.includes(k)}
-                onChange={() => toggleWord(units)}
-              />
-              <label htmlFor={`w-${k}`} style={{ fontFamily: "var(--font-mono)" }}>
-                {units.join(" ")} <span style={{ color: "var(--muted)" }}>({units.map(englishFor).join("")})</span>
-              </label>
-            </div>
-          );
-        })}
+        <label htmlFor="wordList">Word list</label>
+        <select id="wordList" value={selectedListId || ""} onChange={handleListChange}>
+          {wordLists.map((list) => (
+            <option key={list.id} value={list.id}>
+              {list.name} ({list.words.length} word{list.words.length === 1 ? "" : "s"})
+            </option>
+          ))}
+        </select>
+
+        <label>Words to include</label>
+        {listWords.length === 0 && (
+          <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+            This list has no words yet. Add some on the <a href="/word-lists">Word Lists</a> page.
+          </p>
+        )}
+        {listWords.map((w) => (
+          <div className="checkbox-row" key={w.id}>
+            <input
+              type="checkbox"
+              id={`w-${w.id}`}
+              checked={selectedWordIds.includes(w.id)}
+              onChange={() => toggleWord(w.id)}
+            />
+            <label htmlFor={`w-${w.id}`} style={{ fontFamily: "var(--font-mono)" }}>
+              {wordToUnits(w).join(" ")}{" "}
+              <span style={{ color: "var(--muted)" }}>({w.englishWord})</span>
+            </label>
+          </div>
+        ))}
 
         <div className="field-row" style={{ marginTop: "0.75rem" }}>
           <div>
@@ -209,12 +308,25 @@ export default function WordSearchBuilder() {
         <label htmlFor="title">Activity title</label>
         <input id="title" type="text" value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} />
 
+        <label htmlFor="difficulty">Difficulty</label>
+        <select id="difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+          <option value="EASY">Easy</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HARD">Hard</option>
+        </select>
+
         <button type="button" className="btn btn-quiet" onClick={regenerate} style={{ marginBottom: "0.75rem" }}>
           Shuffle preview
         </button>
-        <button type="button" className="btn btn-accent" onClick={handleGenerate}>
+        <button type="button" className="btn btn-accent" onClick={handleGenerate} style={{ marginBottom: "0.75rem" }}>
           Generate &amp; download HTML
         </button>
+        <button type="button" className="btn btn-quiet" onClick={handleSaveConfig}>
+          Save activity
+        </button>
+        {saveMessage && (
+          <p style={{ fontSize: "0.8rem", color: "var(--muted)" }}>{saveMessage}</p>
+        )}
       </div>
 
       <div className="card">
@@ -224,42 +336,48 @@ export default function WordSearchBuilder() {
           Click a starting cell, then drag or click an ending cell to select a word.
         </p>
 
-        <div
-          className="wordsearch-grid"
-          style={{
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          }}
-          onMouseLeave={() => selecting && endSelection()}
-          onMouseUp={endSelection}
-        >
-          {puzzle.matrix.map((row, r) =>
-            row.map((letter, c) => (
-              <div
-                key={`${r}-${c}`}
-                className={`ws-cell ${isHighlighted(r, c) ? "highlighted" : ""} ${
-                  foundSet.has(`${r}-${c}`) ? "found" : ""
-                }`}
-                title={englishFor(letter)}
-                onMouseDown={() => cellMouseDown(r, c)}
-                onMouseEnter={() => cellEnter(r, c)}
-              >
-                {letter}
-              </div>
-            ))
-          )}
-        </div>
+        {activeWords.length === 0 || puzzle.matrix.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>Select at least one word to preview the puzzle.</p>
+        ) : (
+          <>
+            <div
+              className="wordsearch-grid"
+              style={{
+                gridTemplateRows: `repeat(${rows}, 1fr)`,
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              }}
+              onMouseLeave={() => selecting && endSelection()}
+              onMouseUp={endSelection}
+            >
+              {puzzle.matrix.map((row, r) =>
+                row.map((letter, c) => (
+                  <div
+                    key={`${r}-${c}`}
+                    className={`ws-cell ${isHighlighted(r, c) ? "highlighted" : ""} ${
+                      foundSet.has(`${r}-${c}`) ? "found" : ""
+                    }`}
+                    title={englishFor(letter)}
+                    onMouseDown={() => cellMouseDown(r, c)}
+                    onMouseEnter={() => cellEnter(r, c)}
+                  >
+                    {letter}
+                  </div>
+                ))
+              )}
+            </div>
 
-        <div className="word-chip-list">
-          {activeWords.map((units) => {
-            const k = key(units);
-            return (
-              <div key={k} className={`word-chip ${found[k] ? "found" : ""}`}>
-                {units.join(" ")}
-              </div>
-            );
-          })}
-        </div>
+            <div className="word-chip-list">
+              {activeWords.map((units) => {
+                const k = key(units);
+                return (
+                  <div key={k} className={`word-chip ${found[k] ? "found" : ""}`}>
+                    {units.join(" ")}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

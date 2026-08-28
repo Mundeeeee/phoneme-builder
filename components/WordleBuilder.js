@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { WORD_LISTS_BY_LENGTH } from "@/lib/wordLists";
-import { englishFor, hintFor, KEY_ROWS, KEY_ROWS_COLUMNS } from "@/lib/phonemeData";
+import { useEffect, useMemo, useState } from "react";
+import { hintFor, KEY_ROWS, KEY_ROWS_COLUMNS } from "@/lib/phonemeData";
 import { generateWordleHtml } from "@/lib/generateWordleHtml";
 import { downloadHtml } from "@/lib/downloadHtml";
+import { useWordLists } from "@/hooks/useWordLists";
 
 function scoreGuess(guess, target) {
   const result = new Array(guess.length).fill("absent");
@@ -44,22 +44,43 @@ function computeKeyStates(guesses) {
   return states;
 }
 
+function wordToUnits(word) {
+  return word.phonemes.map((p) => p.symbol);
+}
+
 export default function WordleBuilder() {
-  const [length, setLength] = useState(3);
-  const [wordIndex, setWordIndex] = useState(0);
+  const { wordLists, loading, error } = useWordLists();
+
+  const [selectedListId, setSelectedListId] = useState(null);
+  const [selectedWordId, setSelectedWordId] = useState(null);
   const [maxGuesses, setMaxGuesses] = useState(6);
   const [showHints, setShowHints] = useState(true);
-  const [englishWordOverride, setEnglishWordOverride] = useState(null);
+  const [difficulty, setDifficulty] = useState("MEDIUM");
+  const [englishText, setEnglishText] = useState("");
+  const [englishNotFound, setEnglishNotFound] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   const [currentGuess, setCurrentGuess] = useState([]);
   const [guesses, setGuesses] = useState([]);
   const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
 
-  const wordList = WORD_LISTS_BY_LENGTH[length];
-  const target = wordList[wordIndex % wordList.length];
-  const autoEnglishWord = target.map(englishFor).join("");
-  const englishWord = englishWordOverride ?? autoEnglishWord;
+  // Once word lists load, default to the first list and its first word.
+  useEffect(() => {
+    if (wordLists.length === 0) return;
+    if (selectedListId && wordLists.some((l) => l.id === selectedListId)) return;
+    const firstList = wordLists.find((l) => l.words.length > 0) || wordLists[0];
+    setSelectedListId(firstList.id);
+    const firstWord = firstList.words[0];
+    setSelectedWordId(firstWord?.id ?? null);
+    setEnglishText(firstWord?.englishWord ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordLists]);
+
+  const selectedList = wordLists.find((l) => l.id === selectedListId);
+  const words = selectedList?.words || [];
+  const selectedWord = words.find((w) => w.id === selectedWordId) || words[0];
+  const target = useMemo(() => (selectedWord ? wordToUnits(selectedWord) : []), [selectedWord]);
 
   function resetGame() {
     setCurrentGuess([]);
@@ -68,17 +89,48 @@ export default function WordleBuilder() {
     setMessage("");
   }
 
-  function handleLengthChange(e) {
-    setLength(Number(e.target.value));
-    setWordIndex(0);
-    setEnglishWordOverride(null);
+  function handleListChange(e) {
+    const listId = e.target.value;
+    setSelectedListId(listId);
+    const list = wordLists.find((l) => l.id === listId);
+    const firstWord = list?.words[0];
+    setSelectedWordId(firstWord?.id ?? null);
+    setEnglishText(firstWord?.englishWord ?? "");
+    setEnglishNotFound(false);
     resetGame();
   }
 
   function handleWordChange(e) {
-    setWordIndex(Number(e.target.value));
-    setEnglishWordOverride(null);
+    const wordId = e.target.value;
+    setSelectedWordId(wordId);
+    const word = words.find((w) => w.id === wordId);
+    setEnglishText(word?.englishWord ?? "");
+    setEnglishNotFound(false);
     resetGame();
+  }
+
+  // Typing an English word searches every loaded word list (case
+  // insensitive) and jumps to the first match, driven by stored data
+  // instead of the fixed lookup table used in Assessment 1.
+  function handleEnglishTextChange(e) {
+    const value = e.target.value;
+    setEnglishText(value);
+    const needle = value.trim().toLowerCase();
+    if (!needle) {
+      setEnglishNotFound(false);
+      return;
+    }
+    for (const list of wordLists) {
+      const match = list.words.find((w) => w.englishWord.toLowerCase() === needle);
+      if (match) {
+        setSelectedListId(list.id);
+        setSelectedWordId(match.id);
+        setEnglishNotFound(false);
+        resetGame();
+        return;
+      }
+    }
+    setEnglishNotFound(true);
   }
 
   function addPhoneme(symbol) {
@@ -106,19 +158,20 @@ export default function WordleBuilder() {
     setCurrentGuess([]);
     if (won) {
       setGameOver(true);
-      setMessage(`Correct! ${englishWord} (${target.join(" ")})`);
+      setMessage(`Correct! ${englishText} (${target.join(" ")})`);
     } else if (nextGuesses.length >= maxGuesses) {
       setGameOver(true);
-      setMessage(`Out of guesses. The word was ${englishWord} (${target.join(" ")}).`);
+      setMessage(`Out of guesses. The word was ${englishText} (${target.join(" ")}).`);
     } else {
       setMessage("");
     }
   }
 
   function handleGenerate() {
+    if (target.length === 0) return;
     const html = generateWordleHtml({
       targetUnits: target,
-      englishWord,
+      englishWord: englishText,
       maxGuesses,
       showHints,
       title: "Phoneme'le",
@@ -126,12 +179,66 @@ export default function WordleBuilder() {
     downloadHtml("phoneme-wordle.html", html);
   }
 
-  const wordOptions = useMemo(
-    () => wordList.map((units, i) => ({ index: i, label: `${units.join(" ")}  →  ${units.map(englishFor).join("")}` })),
-    [wordList]
-  );
+  // Persists the current settings as a reusable ActivityConfig row, so a
+  // teacher can come back to this exact configuration later (demonstrates
+  // the backend "save activity settings" requirement).
+  async function handleSaveConfig() {
+    if (!selectedListId) return;
+    setSaveMessage("Saving...");
+    try {
+      const res = await fetch("/api/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "WORDLE",
+          title: `Phoneme'le - ${englishText || "untitled"}`,
+          difficulty,
+          showHints,
+          maxGuesses,
+          wordListId: selectedListId,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save activity.");
+      }
+      setSaveMessage("Saved!");
+    } catch (err) {
+      setSaveMessage(err.message || "Failed to save activity.");
+    } finally {
+      setTimeout(() => setSaveMessage(""), 3000);
+    }
+  }
 
   const keyStates = useMemo(() => computeKeyStates(guesses), [guesses]);
+
+  if (loading) {
+    return (
+      <div className="card">
+        <p>Loading word lists from the database...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card">
+        <p style={{ color: "var(--bad)" }}>{error}</p>
+      </div>
+    );
+  }
+
+  if (wordLists.length === 0 || !selectedWord) {
+    return (
+      <div className="card">
+        <p>
+          No word lists yet. Go to{" "}
+          <a href="/word-lists">Word Lists</a> to create one with at least one word before
+          building a Wordle activity.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid-2">
@@ -139,38 +246,43 @@ export default function WordleBuilder() {
         <span className="eyebrow">Activity settings</span>
         <h2>Build your Wordle</h2>
 
-        <label htmlFor="length">Phoneme length</label>
-        <select id="length" value={length} onChange={handleLengthChange}>
-          <option value={3}>3 phonemes</option>
-          <option value={4}>4 phonemes</option>
-          <option value={5}>5 phonemes</option>
-        </select>
-
-        <label htmlFor="word">Target word</label>
-        <select id="word" value={wordIndex} onChange={handleWordChange}>
-          {wordOptions.map((opt) => (
-            <option key={opt.index} value={opt.index}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "-0.5rem" }}>
-          Assessment 1 uses a single teacher-selected word. A rotating word list arrives in
-          Assessment 2.
-        </p>
-
         <div className="field-row-with-action">
           <div className="field-row-with-action-fields">
-            <label htmlFor="phonemeWord">Phoneme Word</label>
-            <input id="phonemeWord" type="text" value={target.join(" ")} readOnly />
-
             <label htmlFor="englishWord">English Word</label>
             <input
               id="englishWord"
               type="text"
-              value={englishWord}
-              onChange={(e) => setEnglishWordOverride(e.target.value)}
+              value={englishText}
+              onChange={handleEnglishTextChange}
+              placeholder="Type a word, e.g. bed"
             />
+            {englishNotFound && (
+              <p style={{ fontSize: "0.8rem", color: "var(--bad)", marginTop: "-0.6rem" }}>
+                Not in any saved word list yet. Add it on the{" "}
+                <a href="/word-lists">Word Lists</a> page, or pick one below.
+              </p>
+            )}
+
+            <label htmlFor="phonemeWord">Phoneme Word</label>
+            <input id="phonemeWord" type="text" value={target.join(" ")} readOnly />
+
+            <label htmlFor="wordList">Word list</label>
+            <select id="wordList" value={selectedListId || ""} onChange={handleListChange}>
+              {wordLists.map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name} ({list.words.length} word{list.words.length === 1 ? "" : "s"})
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="word">Target word</label>
+            <select id="word" value={selectedWordId || ""} onChange={handleWordChange}>
+              {words.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.englishWord} ({wordToUnits(w).join(" ")})
+                </option>
+              ))}
+            </select>
 
             <label>Show hints</label>
             <div style={{ display: "flex", gap: "1.5rem", marginBottom: "1rem" }}>
@@ -205,15 +317,28 @@ export default function WordleBuilder() {
               value={maxGuesses}
               onChange={(e) => setMaxGuesses(Number(e.target.value))}
             />
+
+            <label htmlFor="difficulty">Difficulty</label>
+            <select id="difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+              <option value="EASY">Easy</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HARD">Hard</option>
+            </select>
           </div>
 
           <div className="field-row-with-action-button">
             <button type="button" className="btn btn-accent" onClick={handleGenerate}>
               Generate
             </button>
+            <button type="button" className="btn btn-quiet" onClick={handleSaveConfig}>
+              Save activity
+            </button>
             <button type="button" className="btn btn-quiet" onClick={resetGame}>
               Reset preview
             </button>
+            {saveMessage && (
+              <p style={{ fontSize: "0.8rem", color: "var(--muted)", margin: 0 }}>{saveMessage}</p>
+            )}
           </div>
         </div>
       </div>
@@ -229,10 +354,7 @@ export default function WordleBuilder() {
         )}
 
         <div className="wordle-preview-layout">
-          <div
-            className="wordle-grid"
-            style={{ justifyItems: "center" }}
-          >
+          <div className="wordle-grid" style={{ justifyItems: "center" }}>
             {Array.from({ length: maxGuesses }).map((_, rowIndex) => {
               const submitted = guesses[rowIndex];
               const isActiveRow = !submitted && rowIndex === guesses.length && !gameOver;
