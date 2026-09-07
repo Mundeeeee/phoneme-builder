@@ -83,10 +83,6 @@ scripts/
   verify-connection.sh  End-to-end frontend/backend/database check (see above)
 ```
 
-Top-level `Dockerfile`, `docker-compose.yml`, and `docker-entrypoint.sh`
-handle containerization (see "Running with Docker" above); `.env.example`
-shows the one environment variable the app needs (`DATABASE_URL`).
-
 ## Database schema (summary)
 
 - **WordList** - a named, teacher-created collection of words (e.g. "Term 2
