@@ -9,6 +9,7 @@
 FROM node:20-alpine
 
 WORKDIR /app
+RUN mkdir -p /app/data
 
 # Alpine's musl libc doesn't ship OpenSSL the way Prisma's engine binaries
 # expect. Without this, Prisma prints "failed to detect the libssl/openssl
@@ -20,7 +21,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
-ENV DATABASE_URL="file:/app/prisma/dev.db"
+ENV DATABASE_URL="file:/app/data/dev.db"
 ENV PORT=3000
 
 # Install dependencies first so this layer is cached unless package*.json

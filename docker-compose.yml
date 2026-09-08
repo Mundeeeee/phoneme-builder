@@ -7,7 +7,7 @@ services:
       - DATABASE_URL=file:/app/prisma/dev.db
     volumes:
       # Persist the SQLite database across container restarts/rebuilds.
-      - phoneme-db:/app/prisma
+      - phoneme-db:/app/data
 
 volumes:
   phoneme-db:

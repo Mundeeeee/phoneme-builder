@@ -1,132 +1,178 @@
 # phoneme-builder
 
+Next.js app for Speech Pathology teachers to build phoneme-based Wordle
+and Word Search classroom activities.
+
+- **Assessment 1:** frontend builder (components, responsive layout, live
+  previews, downloadable HTML output).
+- **Assessment 2:** backend — Prisma/SQLite database, CRUD API, validation,
+  `/health` endpoint, Docker, AWS deployment.
+
+## Contents
+
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Database Schema](#database-schema)
+- [API Reference](#api-reference)
+- [Troubleshooting](#troubleshooting)
+- [Before You Submit](#before-you-submit)
+- [Reference](#reference)
+
+---
+
+## Quick Start
+
+Three ways to run this, pick one.
+
+### 🖥️ Option A — Local (no Docker)
+
 ```bash
 npm install
 cp .env.example .env
-npm run db:push     # creates the SQLite database from the Prisma schema
-npm run db:seed      # loads starter word lists and default activities
-npm run dev
-```
-
-Then open http://localhost:3000.
-To inspect the database visually:
-```bash
-npx prisma studio
-```
-
-## Running with Docker
-
-```bash
-docker compose up --build
-docker build -t phoneme-builder .
-docker run -p 3000:3000 -v phoneme-db:/app/prisma phoneme-builder
-```
-
-Health check:
-
-```bash
-curl http://localhost:3000/health
-```
-
-## Project structure
-
-```
-app/
-  layout.js                 Root layout: theme provider, nav, footer
-  globals.css                Design tokens + shared styling
-  page.js                     Home
-  about/page.js                About (name, student number, video)
-  wordle/page.js                Wordle builder page (reads word lists from the API)
-  word-search/page.js            Word Search builder page (reads word lists from the API)
-  word-lists/page.js              Word list & word CRUD management page
-  activities/page.js                Saved ActivityConfig CRUD management page
-  settings/page.js                 Theme + layout preferences
-  health/route.js                   GET /health - liveness/readiness check
-  api/word-lists/route.js            GET (list), POST (create) word lists
-  api/word-lists/[id]/route.js        GET, PUT, DELETE a word list
-  api/word-lists/[id]/words/route.js   POST - add a word to a list
-  api/words/[id]/route.js              GET, PUT, DELETE a single word
-  api/activities/route.js               GET (list/filter by type), POST - activity configs
-  api/activities/[id]/route.js           GET, PUT, DELETE an activity config
-
-components/
-  NavBar.js               Tab bar + hamburger menu
-  Footer.js                 Name / student number footer
-  ThemeProvider.js           Light/dark + compact layout, persisted via cookies
-  PhonemeKey.js                Reusable phoneme "keycap" with hover hint
-  WaveformRule.js                Decorative divider
-  WordleBuilder.js                 Settings panel + live playable Wordle preview (DB-driven)
-  WordSearchBuilder.js              Settings panel + live interactive Word Search preview (DB-driven)
-  WordListManager.js                 Full CRUD UI for word lists and words
-  ActivityManager.js                   Full CRUD UI for saved activity configurations
-
-hooks/
-  useWordLists.js          Client-side fetch hook for GET /api/word-lists
-  useActivities.js           Client-side fetch hook for GET /api/activities
-
-lib/
-  phonemeData.js       IPA <-> English letter/example lookup (hover hints)
-  wordLists.js           Legacy static phoneme word lists (kept for reference; live data now comes from the database)
-  validation.js            Server-side input validation for every API route
-  prisma.js                  Prisma client singleton
-  api-helpers.js               JSON response + error handling helpers for API routes
-  cookies.js                     Small cookie get/set helper
-  downloadHtml.js                  Triggers a browser download of a generated HTML string
-  generateWordleHtml.js              Builds the standalone Wordle .html file
-  generateWordSearchHtml.js            Builds the standalone Word Search .html file
-
-prisma/
-  schema.prisma          Database schema (WordList, Word, PhonemeUnit, ActivityConfig)
-  seed.js                  Starter data loader (idempotent - skips if data already exists)
-
-scripts/
-  verify-connection.sh  End-to-end frontend/backend/database check (see above)
-```
-
-## Database schema (summary)
-
-- **WordList** - a named, teacher-created collection of words (e.g. "Term 2
-  CVC Words"), reusable across multiple activity configurations.
-- **Word** - one phoneme-based word belonging to a WordList, storing its
-  English spelling.
-- **PhonemeUnit** - one phoneme symbol + its position within a Word. Each
-  symbol is its own row (not a delimited string) so multi-character IPA
-  symbols like `tʃ` or `eː` are never split incorrectly.
-- **ActivityConfig** - a saved Wordle or Word Search configuration (type,
-  title, difficulty, hint visibility, guesses/grid size) pointing at a
-  WordList. Managed end-to-end: created from the Wordle/Word Search builder
-  pages ("Save activity"), and read/updated/deleted from `/activities`.
-
-## API quick reference
-
-| Method | Route                               | Purpose                              |
-|--------|--------------------------------------|---------------------------------------|
-| GET    | `/health`                            | Liveness/readiness check             |
-| GET    | `/api/word-lists`                    | List all word lists + words          |
-| POST   | `/api/word-lists`                    | Create a word list                   |
-| GET    | `/api/word-lists/:id`                | Get one word list                    |
-| PUT    | `/api/word-lists/:id`                | Rename/update a word list            |
-| DELETE | `/api/word-lists/:id`                | Delete a word list (cascades)        |
-| POST   | `/api/word-lists/:id/words`          | Add a word to a list                 |
-| GET    | `/api/words/:id`                     | Get one word                         |
-| PUT    | `/api/words/:id`                     | Update a word's spelling/phonemes    |
-| DELETE | `/api/words/:id`                     | Delete a word                        |
-| GET    | `/api/activities?type=WORDLE`        | List saved activity configs          |
-| POST   | `/api/activities`                    | Save a new activity config           |
-| GET    | `/api/activities/:id`                | Get one activity config              |
-| PUT    | `/api/activities/:id`                | Update an activity config            |
-| DELETE | `/api/activities/:id`                | Delete an activity config            |
-
-
-```bash
-rm -f prisma/dev.db prisma/dev.db-journal
 npm run db:push
 npm run db:seed
 npm run dev
+```
+Open http://localhost:3000. DB viewer: `npx prisma studio`
+
+### 🐳 Option B — Local with Docker
+
+```bash
+docker compose up --build
+```
+or manually:
+```bash
+docker build -t phoneme-builder .
+docker run -p 3000:3000 -v phoneme-db:/app/data phoneme-builder
+```
+Check: `curl http://localhost:3000/health`
+
+> DB lives at `/app/data`, not `/app/prisma` — that folder also holds
+> `schema.prisma`, and mounting a volume there hides it.
+
+### ☁️ Option C — Deploy to AWS (Academy Learner Lab)
+
+**Setup (once):**
+1. `aws --version` to confirm CLI is installed
+2. Start Lab → **AWS Details → Show** → paste into `~/.aws/credentials`
+3. Download `labsuser.pem` (SSH Key) into project folder
+4. `aws sts get-caller-identity` to confirm session is live
+
+**Deploy:**
+```powershell
+.\deploy-to-aws.ps1
+```
+Builds → pushes to ECR → launches EC2 (using Academy's `LabInstanceProfile`
+role and `vockey` key pair) → runs the container.
+
+**Verify:**
+```powershell
+Invoke-RestMethod http://<public-ip>:3000/health
+```
+
+**Clean up (every time):**
+```powershell
+aws ec2 terminate-instances --instance-ids <instance-id> --region us-east-1
+```
+
+**Debug a bad deploy:**
+```powershell
+ssh -i labsuser.pem ec2-user@<public-ip>
+sudo docker logs phoneme-builder
+```
+
+---
+
+## Project Structure
+
+```
+app/
+  layout.js, globals.css, page.js          Root layout, styling, Home
+  about/ wordle/ word-search/               Assessment 1 pages
+  word-lists/ activities/ settings/         Assessment 2 CRUD pages
+  health/route.js                           GET /health
+  api/word-lists/ api/words/ api/activities/  CRUD routes
+
+components/
+  NavBar.js, Footer.js, ThemeProvider.js    Layout pieces
+  PhonemeKey.js, WaveformRule.js            Assessment 1 UI
+  WordleBuilder.js, WordSearchBuilder.js    DB-driven builders
+  WordListManager.js, ActivityManager.js    CRUD UIs
+
+hooks/        useWordLists.js, useActivities.js
+lib/          phonemeData.js, validation.js, prisma.js, api-helpers.js,
+              cookies.js, downloadHtml.js, generate*Html.js
+prisma/       schema.prisma, seed.js
+scripts/      verify-connection.sh
+
+deploy-to-aws.ps1        Build → ECR → EC2
+test-aws-academy.ps1     Verify AWS access with throwaway resources
+```
+
+---
+
+## Database Schema
+
+| Model | Purpose |
+|---|---|
+| **WordList** | Named collection of words, reusable across activities |
+| **Word** | One phoneme-based word + English spelling |
+| **PhonemeUnit** | One phoneme symbol + position (row-per-symbol so multi-char IPA like `tʃ` never splits wrong) |
+| **ActivityConfig** | Saved Wordle/Word Search settings (type, difficulty, hints, guesses/grid) pointing at a WordList |
+
+---
+
+## API Reference
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/health` | Liveness + DB check |
+| GET / POST | `/api/word-lists` | List / create word lists |
+| GET / PUT / DELETE | `/api/word-lists/:id` | Get / rename / delete a list |
+| POST | `/api/word-lists/:id/words` | Add a word |
+| GET / PUT / DELETE | `/api/words/:id` | Get / update / delete a word |
+| GET / POST | `/api/activities` | List / create activity configs |
+| GET / PUT / DELETE | `/api/activities/:id` | Get / update / delete a config |
+
+All writes validated (`lib/validation.js`) → `400` + errors on bad input, `404` if not found.
+
+---
+
+## Troubleshooting
+
+**Page loads forever:** `db:push` hung waiting for a confirmation prompt. Fixed with `--accept-data-loss`. Still stuck?
+```bash
+rm -f prisma/dev.db prisma/dev.db-journal && npm run db:push && npm run db:seed
+```
+
+**"Could not find Prisma Schema" in Docker:** volume mounted over `/app/prisma`, hiding `schema.prisma`. Mount `/app/data` instead.
+
+**"Could not parse schema engine response" / OpenSSL warnings:** Alpine's musl libc needs OpenSSL installed explicitly + a `binaryTargets` entry in `schema.prisma`. Rebuild clean:
+```bash
 docker build -t phoneme-builder . --no-cache
 ```
 
+**Still broken:** check `.env` exists, check terminal/`docker logs` output, check Network tab — *pending* request = hang above, *failed* request = validation/Prisma error.
+
+**Confirm frontend ↔ backend connection:**
+```bash
+./scripts/verify-connection.sh http://localhost:3000
+```
+
+---
+
+## Before You Submit
+
+- [ ] Name/student number set in `Footer.js` + `about/page.js`
+- [ ] Video reference added in `about/page.js`
+- [ ] `node_modules`, `.next` removed before zipping
+- [ ] AWS EC2 instance terminated
+- [ ] Video shows: student ID (first 30s), CRUD demo, `/health`, Docker running
+
+---
+
 ## Reference
+
 Anthropic. (2026). Claude [Large language model]. https://claude.ai/
 
 MDN Web Docs. (2026, June 15). *Document: cookie property*. Mozilla. https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
@@ -147,5 +193,5 @@ Vercel. (n.d.). *Route handlers*. Next.js Documentation. Retrieved August 23, 20
 
 World Wide Web Consortium. (2023, October 5). *Web Content Accessibility Guidelines (WCAG) 2.2*. W3C. https://www.w3.org/TR/WCAG22/
 
-## Github Repo
+## GitHub Repo
 https://github.com/Mundeeeee/phoneme-builder/tree/main
