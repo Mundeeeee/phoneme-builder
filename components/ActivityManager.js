@@ -5,10 +5,7 @@ import { useActivities } from "@/hooks/useActivities";
 
 const DIFFICULTY_LEVELS = ["EASY", "MEDIUM", "HARD"];
 
-// Full read/update/delete UI for saved ActivityConfig rows. Creating a new
-// one happens from the Wordle/Word Search builder pages ("Save activity"),
-// but every saved configuration can be reviewed, edited, or removed here -
-// closing the CRUD loop for activity settings, not just words.
+// Read/update/delete UI for saved ActivityConfig rows (created from the builder pages).
 export default function ActivityManager() {
   const { activities, loading, error, refresh } = useActivities();
   const [editingId, setEditingId] = useState(null);

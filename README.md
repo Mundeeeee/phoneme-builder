@@ -42,13 +42,25 @@ docker compose up --build
 ```
 or manually:
 ```bash
-docker build -t phoneme-builder .
-docker run -p 3000:3000 -v phoneme-db:/app/data phoneme-builder
+docker build -t phoneme-builder . --no-cache
+docker run -d -p 3000:3000 -v phoneme-db:/app/data --name phoneme-builder phoneme-builder
 ```
-Check: `curl http://localhost:3000/health`
+
+**Verify it's actually working — check all three:**
+```powershell
+docker ps                                    # container shows "Up"
+docker logs phoneme-builder                   # no errors, ends with "Starting application..."
+Invoke-RestMethod http://localhost:3000/health   # status: ok
+```
+
+If `docker ps` doesn't show it, or `docker logs` shows an error, that's
+the real problem — see [Troubleshooting](#troubleshooting) below rather
+than assuming the app itself is broken.
 
 > DB lives at `/app/data`, not `/app/prisma` — that folder also holds
 > `schema.prisma`, and mounting a volume there hides it.
+
+> Container already exists from a previous run? `docker rm -f phoneme-builder` first.
 
 ### ☁️ Option C — Deploy to AWS (Academy Learner Lab)
 
@@ -140,6 +152,17 @@ All writes validated (`lib/validation.js`) → `400` + errors on bad input, `404
 
 ## Troubleshooting
 
+**Docker command hangs, errors "cannot connect to the Docker daemon," or nothing happens at all:** Docker Desktop isn't running.
+```powershell
+docker info
+```
+If this errors, open Docker Desktop from the Start Menu and wait for the whale icon in the system tray to stop animating before retrying.
+
+**"Container name already in use":** a previous run is still there.
+```powershell
+docker rm -f phoneme-builder
+```
+
 **Page loads forever:** `db:push` hung waiting for a confirmation prompt. Fixed with `--accept-data-loss`. Still stuck?
 ```bash
 rm -f prisma/dev.db prisma/dev.db-journal && npm run db:push && npm run db:seed
@@ -159,17 +182,6 @@ docker build -t phoneme-builder . --no-cache
 ./scripts/verify-connection.sh http://localhost:3000
 ```
 
----
-
-## Before You Submit
-
-- [ ] Name/student number set in `Footer.js` + `about/page.js`
-- [ ] Video reference added in `about/page.js`
-- [ ] `node_modules`, `.next` removed before zipping
-- [ ] AWS EC2 instance terminated
-- [ ] Video shows: student ID (first 30s), CRUD demo, `/health`, Docker running
-
----
 
 ## Reference
 

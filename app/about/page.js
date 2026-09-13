@@ -7,16 +7,18 @@ export default function AboutPage() {
         The HCE Phoneme Activity Builder is a frontend tool for Speech Pathology teachers.
         It lets a teacher configure two phoneme-based classroom activities &mdash; a Wordle-style
         guessing game and a Word Search &mdash; preview them live, and generate a single,
-        standalone HTML file that plays in any web browser without any further setup.
+        standalone HTML file that plays in any web browser without any further setup. Assessment 2
+        adds a database backend so words and activity settings are stored and managed, not
+        hard-coded.
       </p>
 
       <div className="card">
         <h3>Wordle tool</h3>
         <p>
-          Teachers pick a phoneme length (3, 4 or 5 phonemes), a target word, and the number of
-          guesses allowed. Students build each guess from a phoneme keyboard, where every key
-          shows the IPA symbol with its English letter equivalence on hover (for example /θ/
-          shows &ldquo;TH (as in thin)&rdquo;).
+          Teachers pick a word from a saved word list, and the number of guesses allowed.
+          Students build each guess from a phoneme keyboard, where every key shows the IPA
+          symbol with its English letter equivalence on hover (for example /θ/ shows
+          &ldquo;TH (as in thin)&rdquo;).
         </p>
       </div>
 
@@ -27,6 +29,16 @@ export default function AboutPage() {
           puzzle where each cell holds one phoneme unit. Students click-and-drag to find words,
           with hover hints and a live word list showing which words have been found.
         </p>
+      </div>
+
+      <div className="card">
+        <h3>Submission details</h3>
+        <p>Lachlan Broadbent &middot; Student Number: 22451393</p>
+        <p style={{ marginBottom: 0 }}>Video walkthrough:</p>
+        <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }}>
+          <source src="/walkthrough.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
       </div>
     </div>
   );

@@ -109,9 +109,7 @@ export default function WordleBuilder() {
     resetGame();
   }
 
-  // Typing an English word searches every loaded word list (case
-  // insensitive) and jumps to the first match, driven by stored data
-  // instead of the fixed lookup table used in Assessment 1.
+  // Typing an English word searches all loaded word lists and jumps to the first match.
   function handleEnglishTextChange(e) {
     const value = e.target.value;
     setEnglishText(value);
@@ -138,8 +136,7 @@ export default function WordleBuilder() {
     setCurrentGuess((g) => [...g, symbol]);
   }
 
-  // Clicking a filled tile in the active row removes that phoneme
-  // (replaces a separate Delete button, per the wireframe).
+  // Click a filled tile to remove that phoneme (no separate Delete button).
   function removeAt(index) {
     if (gameOver) return;
     setCurrentGuess((g) => g.filter((_, i) => i !== index));
@@ -179,9 +176,7 @@ export default function WordleBuilder() {
     downloadHtml("phoneme-wordle.html", html);
   }
 
-  // Persists the current settings as a reusable ActivityConfig row, so a
-  // teacher can come back to this exact configuration later (demonstrates
-  // the backend "save activity settings" requirement).
+  // Saves current settings as a reusable ActivityConfig row.
   async function handleSaveConfig() {
     if (!selectedListId) return;
     setSaveMessage("Saving...");
