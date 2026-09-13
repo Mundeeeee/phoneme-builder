@@ -182,17 +182,6 @@ docker build -t phoneme-builder . --no-cache
 ./scripts/verify-connection.sh http://localhost:3000
 ```
 
----
-
-## Before You Submit
-
-- [ ] Name/student number set in `Footer.js` + `about/page.js`
-- [ ] Video reference added in `about/page.js`
-- [ ] `node_modules`, `.next` removed before zipping
-- [ ] AWS EC2 instance terminated
-- [ ] Video shows: student ID (first 30s), CRUD demo, `/health`, Docker running
-
----
 
 ## Reference
 
