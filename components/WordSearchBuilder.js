@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { englishFor } from "@/lib/phonemeData";
 import { generateWordSearchHtml } from "@/lib/generateWordSearchHtml";
 import { downloadHtml } from "@/lib/downloadHtml";
+import { logGenerationEvent } from "@/lib/logEvent";
 import { useWordLists } from "@/hooks/useWordLists";
 
 const DIRECTIONS = [
@@ -192,14 +193,22 @@ export default function WordSearchBuilder() {
   const foundSet = foundCoordSet();
 
   function handleGenerate() {
-    if (activeWords.length === 0) return;
-    const html = generateWordSearchHtml({
-      words: activeWords,
-      rows,
-      cols,
-      title: activityTitle,
-    });
-    downloadHtml("phoneme-word-search.html", html);
+    if (activeWords.length === 0) {
+      logGenerationEvent({ type: "WORD_SEARCH", outcome: "FAILURE", errorReason: "No words selected", wordListId: selectedListId });
+      return;
+    }
+    try {
+      const html = generateWordSearchHtml({
+        words: activeWords,
+        rows,
+        cols,
+        title: activityTitle,
+      });
+      downloadHtml("phoneme-word-search.html", html);
+      logGenerationEvent({ type: "WORD_SEARCH", outcome: "SUCCESS", wordListId: selectedListId });
+    } catch (err) {
+      logGenerationEvent({ type: "WORD_SEARCH", outcome: "FAILURE", errorReason: err.message, wordListId: selectedListId });
+    }
   }
 
   async function handleSaveConfig() {

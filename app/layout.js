@@ -2,6 +2,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import PageViewTracker from "@/components/PageViewTracker";
 
 export const metadata = {
   title: "HCE Phoneme Activity Builder",
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <ThemeProvider>
+          <PageViewTracker />
           <a href="#main-content" className="skip-link">
             Skip to content
           </a>

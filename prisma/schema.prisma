@@ -19,6 +19,7 @@ model WordList {
   description String?
   words       Word[]
   activities  ActivityConfig[]
+  events      GenerationEvent[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 }
@@ -65,4 +66,30 @@ model ActivityConfig {
   updatedAt   DateTime @updatedAt
 
   @@index([wordListId])
+}
+
+// One record per Generate-button click, success or failure. Powers the
+// dashboard's generation counts and recent-failures alert list.
+model GenerationEvent {
+  id          String    @id @default(cuid())
+  type        String    // "WORDLE" | "WORD_SEARCH"
+  outcome     String    // "SUCCESS" | "FAILURE"
+  errorReason String?   // set when outcome is FAILURE
+  wordListId  String?
+  wordList    WordList? @relation(fields: [wordListId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+}
+
+// One record per page visit duration. Powers the dashboard's average
+// time-on-page metric.
+model PageViewEvent {
+  id         String   @id @default(cuid())
+  page       String
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  @@index([page])
 }

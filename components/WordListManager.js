@@ -307,15 +307,16 @@ export default function WordListManager() {
                         const symbol = row[ci];
                         if (!symbol) return <td key={ci} className="phoneme-table-empty" />;
                         return (
-                          <td
-                            key={ci}
-                            className="phoneme-table-key"
-                            data-hint={hintFor(symbol)}
-                            onClick={() => addPhonemeToForm(symbol)}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            {symbol}
+                          <td key={ci} className="phoneme-table-cell">
+                            <button
+                              type="button"
+                              className="phoneme-table-key"
+                              data-hint={hintFor(symbol)}
+                              onClick={() => addPhonemeToForm(symbol)}
+                              aria-label={`Phoneme ${symbol}, ${hintFor(symbol)}`}
+                            >
+                              {symbol}
+                            </button>
                           </td>
                         );
                       })}

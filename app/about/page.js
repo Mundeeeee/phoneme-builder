@@ -35,8 +35,9 @@ export default function AboutPage() {
         <h3>Submission details</h3>
         <p>Lachlan Broadbent &middot; Student Number: 22451393</p>
         <p style={{ marginBottom: 0 }}>Video walkthrough:</p>
-        <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }}>
+        <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }} aria-label="Project walkthrough video">
           <source src="/walkthrough.mp4" type="video/mp4" />
+          <track kind="captions" src="/walkthrough-captions.vtt" srcLang="en" label="English" default />
           Your browser does not support the video tag.
         </video>
       </div>

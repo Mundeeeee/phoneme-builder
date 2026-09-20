@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { hintFor, KEY_ROWS, KEY_ROWS_COLUMNS } from "@/lib/phonemeData";
 import { generateWordleHtml } from "@/lib/generateWordleHtml";
 import { downloadHtml } from "@/lib/downloadHtml";
+import { logGenerationEvent } from "@/lib/logEvent";
 import { useWordLists } from "@/hooks/useWordLists";
 
 function scoreGuess(guess, target) {
@@ -165,15 +166,23 @@ export default function WordleBuilder() {
   }
 
   function handleGenerate() {
-    if (target.length === 0) return;
-    const html = generateWordleHtml({
-      targetUnits: target,
-      englishWord: englishText,
-      maxGuesses,
-      showHints,
-      title: "Phoneme'le",
-    });
-    downloadHtml("phoneme-wordle.html", html);
+    if (target.length === 0) {
+      logGenerationEvent({ type: "WORDLE", outcome: "FAILURE", errorReason: "No word selected", wordListId: selectedListId });
+      return;
+    }
+    try {
+      const html = generateWordleHtml({
+        targetUnits: target,
+        englishWord: englishText,
+        maxGuesses,
+        showHints,
+        title: "Phoneme'le",
+      });
+      downloadHtml("phoneme-wordle.html", html);
+      logGenerationEvent({ type: "WORDLE", outcome: "SUCCESS", wordListId: selectedListId });
+    } catch (err) {
+      logGenerationEvent({ type: "WORDLE", outcome: "FAILURE", errorReason: err.message, wordListId: selectedListId });
+    }
   }
 
   // Saves current settings as a reusable ActivityConfig row.
@@ -394,17 +403,18 @@ export default function WordleBuilder() {
                     const symbol = row[ci];
                     if (!symbol) return <td key={ci} className="phoneme-table-empty" />;
                     return (
-                      <td
-                        key={ci}
-                        className="phoneme-table-key"
-                        data-state={keyStates[symbol]}
-                        data-hint={showHints ? hintFor(symbol) : undefined}
-                        onClick={() => addPhoneme(symbol)}
-                        role="button"
-                        tabIndex={gameOver ? -1 : 0}
-                        aria-label={showHints ? `Phoneme ${symbol}, ${hintFor(symbol)}` : `Phoneme ${symbol}`}
-                      >
-                        {symbol}
+                      <td key={ci} className="phoneme-table-cell">
+                        <button
+                          type="button"
+                          className="phoneme-table-key"
+                          data-state={keyStates[symbol]}
+                          data-hint={showHints ? hintFor(symbol) : undefined}
+                          onClick={() => addPhoneme(symbol)}
+                          disabled={gameOver}
+                          aria-label={showHints ? `Phoneme ${symbol}, ${hintFor(symbol)}` : `Phoneme ${symbol}`}
+                        >
+                          {symbol}
+                        </button>
                       </td>
                     );
                   })}

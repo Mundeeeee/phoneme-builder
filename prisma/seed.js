@@ -114,6 +114,38 @@ async function main() {
   });
 
   console.log("Created default Wordle and Word Search activity configurations.");
+
+  // Simulated historical usage data, so the dashboard has meaningful
+  // numbers immediately after seeding rather than starting empty.
+  const allListIds = Object.values(createdLists).map((l) => l.id);
+  const failureReasons = ["No word selected", "No words selected", "Empty word list"];
+  const generationEvents = [];
+  for (let i = 0; i < 40; i++) {
+    const type = Math.random() < 0.6 ? "WORDLE" : "WORD_SEARCH";
+    const outcome = Math.random() < 0.85 ? "SUCCESS" : "FAILURE";
+    const daysAgo = Math.floor(Math.random() * 14);
+    generationEvents.push({
+      type,
+      outcome,
+      errorReason: outcome === "FAILURE" ? failureReasons[Math.floor(Math.random() * failureReasons.length)] : null,
+      wordListId: allListIds[Math.floor(Math.random() * allListIds.length)],
+      createdAt: new Date(Date.now() - daysAgo * 86400000 - Math.random() * 86400000),
+    });
+  }
+  await prisma.generationEvent.createMany({ data: generationEvents });
+
+  const pages = ["/wordle", "/word-search", "/word-lists", "/"];
+  const pageViewEvents = [];
+  for (let i = 0; i < 60; i++) {
+    pageViewEvents.push({
+      page: pages[Math.floor(Math.random() * pages.length)],
+      durationMs: Math.floor(5000 + Math.random() * 120000),
+      createdAt: new Date(Date.now() - Math.random() * 14 * 86400000),
+    });
+  }
+  await prisma.pageViewEvent.createMany({ data: pageViewEvents });
+
+  console.log(`Simulated ${generationEvents.length} generation events and ${pageViewEvents.length} page views.`);
 }
 
 main()

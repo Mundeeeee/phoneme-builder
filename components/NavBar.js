@@ -10,6 +10,7 @@ const PRIMARY_LINKS = [
   { href: "/word-search", label: "Word Search" },
   { href: "/word-lists", label: "Word Lists" },
   { href: "/activities", label: "Activities" },
+  { href: "/dashboard", label: "Dashboard" },
 ];
 
 const MENU_LINKS = [

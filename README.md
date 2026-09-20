@@ -7,12 +7,16 @@ and Word Search classroom activities.
   previews, downloadable HTML output).
 - **Assessment 2:** backend — Prisma/SQLite database, CRUD API, validation,
   `/health` endpoint, Docker, AWS deployment.
+- **Assessment 3:** data-driven dashboard, observability/metrics,
+  Playwright E2E tests, JMeter load testing, Lighthouse accessibility.
 
 ## Contents
 
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
 - [Database Schema](#database-schema)
+- [Dashboard & Observability](#dashboard--observability)
+- [Testing](#testing)
 - [API Reference](#api-reference)
 - [Troubleshooting](#troubleshooting)
 - [Before You Submit](#before-you-submit)
@@ -102,20 +106,27 @@ app/
   layout.js, globals.css, page.js          Root layout, styling, Home
   about/ wordle/ word-search/               Assessment 1 pages
   word-lists/ activities/ settings/         Assessment 2 CRUD pages
+  dashboard/                                 Assessment 3 observability dashboard
   health/route.js                           GET /health
   api/word-lists/ api/words/ api/activities/  CRUD routes
+  api/metrics/ api/events/                     Dashboard metrics + event logging
 
 components/
   NavBar.js, Footer.js, ThemeProvider.js    Layout pieces
   PhonemeKey.js, WaveformRule.js            Assessment 1 UI
   WordleBuilder.js, WordSearchBuilder.js    DB-driven builders
   WordListManager.js, ActivityManager.js    CRUD UIs
+  Dashboard.js, PageViewTracker.js           Assessment 3 observability
 
-hooks/        useWordLists.js, useActivities.js
+hooks/        useWordLists.js, useActivities.js, useMetrics.js
 lib/          phonemeData.js, validation.js, prisma.js, api-helpers.js,
-              cookies.js, downloadHtml.js, generate*Html.js
-prisma/       schema.prisma, seed.js
+              cookies.js, downloadHtml.js, generate*Html.js, logEvent.js
+prisma/       schema.prisma, seed.js (incl. simulated event data)
 scripts/      verify-connection.sh
+tests/        word-list-crud.spec.js, generate-wordle.spec.js (Playwright)
+jmeter/       phoneme-builder-load-test.jmx (staged load test)
+docs/         DESIGN_DECISIONS.md, PLAYWRIGHT_TESTING.md,
+              JMETER_LOAD_TESTING.md, LIGHTHOUSE_ACCESSIBILITY.md
 
 deploy-to-aws.ps1        Build → ECR → EC2
 test-aws-academy.ps1     Verify AWS access with throwaway resources
@@ -134,6 +145,99 @@ test-aws-academy.ps1     Verify AWS access with throwaway resources
 
 ---
 
+## Dashboard & Observability
+
+Assessment 3 adds `/dashboard` — live operational metrics read from the
+database, not hard-coded:
+
+- Activity counts (Wordle vs. Word Search)
+- Generation success/failure counts and success rate
+- Most-used activity type
+- Average time on page (tracked automatically site-wide)
+- Alerts: empty word lists, recent generation failures
+- Health status (reuses `/health`)
+
+**How data gets there:**
+- `components/PageViewTracker.js` — mounted once in `app/layout.js`, times
+  every page visit and posts the duration to `/api/events/page-view` on
+  navigation/close (`navigator.sendBeacon`, so it survives tab close).
+- `lib/logEvent.js` — called from both builders' Generate buttons, posts a
+  success/failure record to `/api/events/generation`.
+- `prisma/seed.js` — also seeds ~40 simulated generation events and ~60
+  simulated page views across the past two weeks, so the dashboard has
+  meaningful data immediately after seeding.
+
+---
+
+## Testing
+
+Three testing tools, one per rubric requirement (E2E, load, accessibility).
+
+### 🎭 Playwright — end-to-end tests
+
+```bash
+npx playwright install chromium
+npm run db:reset
+npm run test:e2e
+```
+
+**Watch it run / debug a failure:**
+```bash
+npm run test:e2e:ui
+```
+
+**View the report after a run:**
+```bash
+npm run test:e2e:report
+```
+
+Two required tests live in `tests/`: `word-list-crud.spec.js` (builder use
+case — full CRUD) and `generate-wordle.spec.js` (user use case —
+downloads a generated activity). Full details: `docs/PLAYWRIGHT_TESTING.md`
+
+### 🚦 JMeter — load testing
+
+**Setup (once):** install from https://jmeter.apache.org/download_jmeter.cgi
+
+**Run:**
+```bash
+npm run build && npm start
+```
+```powershell
+cd jmeter
+jmeter -t phoneme-builder-load-test.jmx
+```
+
+**Staged levels:** only "Load - x1 user" is enabled by default. To test
+the next level, right-click it → **Disable**, right-click the next one
+(x10 → x100 → x1000 → x10000) → **Enable**, run again, check the
+**Summary Report** listener each time.
+
+> Only one Thread Group should be enabled at a time — the file ships with
+> the rest disabled so opening it doesn't immediately fire 10,000 requests.
+
+Full details and how to interpret results: `docs/JMETER_LOAD_TESTING.md`
+
+### 🔦 Lighthouse — accessibility
+
+```bash
+npm run build && npm start
+```
+```powershell
+npx lighthouse http://localhost:3000 --only-categories=accessibility --view
+```
+
+Repeat against `/wordle`, `/word-search`, and `/dashboard` — scores
+differ per page. `--view` opens the report in your browser automatically.
+
+> Replace the placeholder text in `public/walkthrough-captions.vtt` with
+> a real transcript before recording — it's currently a stand-in.
+
+Findings already addressed and how they shaped the design:
+`docs/LIGHTHOUSE_ACCESSIBILITY.md`
+
+---
+
 ## API Reference
 
 | Method | Route | Purpose |
@@ -145,6 +249,9 @@ test-aws-academy.ps1     Verify AWS access with throwaway resources
 | GET / PUT / DELETE | `/api/words/:id` | Get / update / delete a word |
 | GET / POST | `/api/activities` | List / create activity configs |
 | GET / PUT / DELETE | `/api/activities/:id` | Get / update / delete a config |
+| GET | `/api/metrics` | Aggregated dashboard stats |
+| POST | `/api/events/generation` | Log a Generate-button success/failure |
+| POST | `/api/events/page-view` | Log time spent on a page |
 
 All writes validated (`lib/validation.js`) → `400` + errors on bad input, `404` if not found.
 
