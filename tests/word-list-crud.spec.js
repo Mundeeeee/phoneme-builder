@@ -18,6 +18,10 @@ test("teacher can create, edit, and delete a word list and a word", async ({ pag
   // The new list is auto-selected, so the word form appears immediately.
   await expect(page.getByText(listName)).toBeVisible();
 
+  // Every list card has its own identically-labeled "Delete list" button
+  // (all the seeded lists have one too), so scope to THIS card only.
+  const listCard = page.locator("div.card", { hasText: listName });
+
   // Add a word by clicking phoneme keys, then submitting the English spelling.
   await page.getByRole("button", { name: "b", exact: true }).click();
   await page.getByRole("button", { name: "e", exact: true }).click();
@@ -38,7 +42,7 @@ test("teacher can create, edit, and delete a word list and a word", async ({ pag
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.getByText("BEDS (b e d)")).not.toBeVisible();
 
-  // Delete the whole list
-  await page.getByRole("button", { name: "Delete list" }).click();
+  // Delete the whole list - scoped to this specific card, not the whole page.
+  await listCard.getByRole("button", { name: "Delete list" }).click();
   await expect(page.getByText(listName)).not.toBeVisible();
 });
