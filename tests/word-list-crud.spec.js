@@ -20,12 +20,14 @@ test("teacher can create, edit, and delete a word list and a word", async ({ pag
 
   // Every list card has its own identically-labeled "Delete list" button
   // (all the seeded lists have one too), so scope to THIS card only.
-  const listCard = page.locator("div.card", { hasText: listName });
+ const listCard = page.locator("strong", { hasText: listName }).locator("xpath=..");
 
   // Add a word by clicking phoneme keys, then submitting the English spelling.
-  await page.getByRole("button", { name: "b", exact: true }).click();
-  await page.getByRole("button", { name: "e", exact: true }).click();
-  await page.getByRole("button", { name: "d", exact: true }).click();
+  // Matched via aria-label prefix, not the bare symbol text - each key's
+  // accessible name is "Phoneme b, B (as in bed)" style, not just "b".
+  await page.getByRole("button", { name: /^Phoneme b,/ }).click();
+  await page.getByRole("button", { name: /^Phoneme e,/ }).click();
+  await page.getByRole("button", { name: /^Phoneme d,/ }).click();
   await page.getByLabel("English word").fill("BED");
   await page.getByRole("button", { name: "Add word", exact: true }).click();
 
