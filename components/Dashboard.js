@@ -13,7 +13,14 @@ export default function Dashboard() {
   if (loading) return <div className="card"><p>Loading dashboard...</p></div>;
   if (error) return <div className="card"><p style={{ color: "var(--bad)" }}>{error}</p></div>;
 
-  const { activityCounts, generation, mostUsedActivityType, averageTimeOnPageMs, alerts } = metrics;
+  const {
+    activityCounts,
+    generation,
+    mostUsedActivityType,
+    averageTimeOnPageMs,
+    pageViewSampleSize,
+    alerts,
+  } = metrics;
   const successPct = generation.total === 0 ? 0 : Math.round(generation.successRate * 100);
 
   return (
@@ -26,7 +33,10 @@ export default function Dashboard() {
       >
         <strong>System health:</strong>{" "}
         {health?.status === "ok" ? (
-          <span style={{ color: "var(--good)" }}>Healthy &mdash; database connected</span>
+          // var(--good-text) not var(--good): --good is only 3.54:1 against
+          // this light background (fails WCAG AA 4.5:1) - --good-text is a
+          // darker shade of the same green that passes at 5.68:1.
+          <span style={{ color: "var(--good-text)" }}>Healthy &mdash; database connected</span>
         ) : (
           <span style={{ color: "var(--bad)" }}>Unhealthy &mdash; check the database connection</span>
         )}
@@ -73,6 +83,9 @@ export default function Dashboard() {
         <div className="card">
           <span className="eyebrow">Most-used activity type</span>
           <h2>{mostUsedActivityType ? (mostUsedActivityType === "WORDLE" ? "Wordle" : "Word Search") : "N/A"}</h2>
+          <p style={{ color: "var(--muted)", margin: 0 }}>
+            {activityCounts.wordle} Wordle &middot; {activityCounts.wordSearch} Word Search
+          </p>
         </div>
 
         <div className="card">
@@ -86,10 +99,14 @@ export default function Dashboard() {
         <div className="card">
           <span className="eyebrow">Average time on page</span>
           <h2>{formatMs(averageTimeOnPageMs)}</h2>
+          <p style={{ color: "var(--muted)", margin: 0 }}>
+            Based on {pageViewSampleSize || 0} page view{pageViewSampleSize === 1 ? "" : "s"}
+          </p>
         </div>
       </div>
 
-      {/* Simple success/failure bar */}
+      {/* Simple success/failure bar. aria-hidden since the same numbers are
+          already stated as text in the "Generation success rate" card above. */}
       {generation.total > 0 && (
         <div className="card">
           <span className="eyebrow">Generation outcomes</span>

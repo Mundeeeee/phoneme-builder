@@ -13,7 +13,7 @@ export default function AboutPage() {
       </p>
 
       <div className="card">
-        <h3>Wordle tool</h3>
+        <h2>Wordle tool</h2>
         <p>
           Teachers pick a word from a saved word list, and the number of guesses allowed.
           Students build each guess from a phoneme keyboard, where every key shows the IPA
@@ -23,7 +23,7 @@ export default function AboutPage() {
       </div>
 
       <div className="card">
-        <h3>Word Search tool</h3>
+        <h2>Word Search tool</h2>
         <p>
           Teachers choose which phoneme words to include and the grid size, then generate a
           puzzle where each cell holds one phoneme unit. Students click-and-drag to find words,
@@ -32,7 +32,7 @@ export default function AboutPage() {
       </div>
 
       <div className="card">
-        <h3>Submission details</h3>
+        <h2>Submission details</h2>
         <p>Lachlan Broadbent &middot; Student Number: 22451393</p>
         <p style={{ marginBottom: 0 }}>Video walkthrough:</p>
         <video controls style={{ width: "100%", borderRadius: "8px", marginTop: "0.5rem" }} aria-label="Project walkthrough video">

@@ -15,7 +15,7 @@ export default function SettingsPage() {
       </p>
 
       <div className="card">
-        <h3>Theme</h3>
+        <h2>Theme</h2>
         <p style={{ color: "var(--muted)" }}>Choose how the builder interface looks.</p>
         <div style={{ display: "flex", gap: "0.6rem" }}>
           <button
@@ -36,7 +36,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="card">
-        <h3>Layout</h3>
+        <h2>Layout</h2>
         <div className="checkbox-row">
           <input
             type="checkbox"
