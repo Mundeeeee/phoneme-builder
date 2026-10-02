@@ -71,7 +71,14 @@ export default function Dashboard() {
       )}
 
       {/* Metric cards */}
-      <div className="grid-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+      {/* alignItems: "stretch" overrides .grid-2's own "align-items: start"
+          (set for its original two-column settings-panel layout), so all
+          four cards match the height of the tallest one in the row instead
+          of each sizing to its own content. */}
+      <div
+        className="grid-2"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", alignItems: "stretch" }}
+      >
         <div className="card">
           <span className="eyebrow">Activities created</span>
           <h2>{activityCounts.total}</h2>
