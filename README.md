@@ -205,7 +205,7 @@ npm run build && npm start
 ```
 ```powershell
 cd jmeter
-jmeter -t phoneme-builder-load-test.jmx
+C:\jmeter\bin\jmeter.bat -n -t your_test_plan.jmx -l results.jtl
 ```
 
 **Staged levels:** only "Load - x1 user" is enabled by default. To test

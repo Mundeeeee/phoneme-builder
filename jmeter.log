@@ -1,0 +1,28 @@
+2026-10-04 09:50:20,022 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-10-04 09:50:20,036 INFO o.a.j.JMeter: Loading user properties from: C:\jmeter\bin\user.properties
+2026-10-04 09:50:20,037 INFO o.a.j.JMeter: Loading system properties from: C:\jmeter\bin\system.properties
+2026-10-04 09:50:20,045 INFO o.a.j.JMeter: Copyright (c) 1998-2024 The Apache Software Foundation
+2026-10-04 09:50:20,045 INFO o.a.j.JMeter: Version 5.6.3
+2026-10-04 09:50:20,045 INFO o.a.j.JMeter: java.version=25.0.4
+2026-10-04 09:50:20,045 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2026-10-04 09:50:20,045 INFO o.a.j.JMeter: os.name=Windows 11
+2026-10-04 09:50:20,045 INFO o.a.j.JMeter: os.arch=amd64
+2026-10-04 09:50:20,046 INFO o.a.j.JMeter: os.version=10.0
+2026-10-04 09:50:20,046 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-10-04 09:50:20,046 INFO o.a.j.JMeter: java.awt.headless=true
+2026-10-04 09:50:20,046 INFO o.a.j.JMeter: Max memory     =6442450944
+2026-10-04 09:50:20,046 INFO o.a.j.JMeter: Available Processors =16
+2026-10-04 09:50:20,055 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-10-04 09:50:20,056 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-10-04 09:50:20,056 INFO o.a.j.JMeter: JMeterHome=C:\jmeter
+2026-10-04 09:50:20,056 INFO o.a.j.JMeter: user.dir  =C:\Users\Lachlan Broadbent\Documents\CSE3CWA Assignment 1\phoneme-builder
+2026-10-04 09:50:20,056 INFO o.a.j.JMeter: PWD       =C:\Users\Lachlan Broadbent\Documents\CSE3CWA Assignment 1\phoneme-builder
+2026-10-04 09:50:29,550 INFO o.a.j.JMeter: IP: 26.122.120.215 Name: DESKTOP-GM1KQ3M FullName: DESKTOP-GM1KQ3M
+2026-10-04 09:50:29,559 ERROR o.a.j.JMeter: An error occurred: 
+org.apache.jmeter.report.config.ConfigurationException: The file C:\Users\Lachlan Broadbent\Documents\CSE3CWA Assignment 1\phoneme-builder\phoneme-builder-load-test.jmx doesn't exist or can't be opened
+	at org.apache.jmeter.JMeter.runNonGui(JMeter.java:950) ~[ApacheJMeter_core.jar:5.6.3]
+	at org.apache.jmeter.JMeter.startNonGui(JMeter.java:940) ~[ApacheJMeter_core.jar:5.6.3]
+	at org.apache.jmeter.JMeter.start(JMeter.java:508) [ApacheJMeter_core.jar:5.6.3]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[?:?]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[?:?]
+	at org.apache.jmeter.NewDriver.main(NewDriver.java:259) [ApacheJMeter.jar:5.6.3]
